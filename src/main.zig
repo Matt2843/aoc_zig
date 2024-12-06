@@ -1,13 +1,13 @@
 const std = @import("std");
 const util = @import("util.zig");
-const day = @import("2024/day5.zig");
+const day = @import("2024/day6.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    const inp = try util.getInput(allocator, 2024, 5);
+    const inp = try util.getInput(allocator, 2024, 6);
     defer allocator.free(inp);
 
     const ans = try day.solve(allocator, inp);

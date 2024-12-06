@@ -1,23 +1,24 @@
 const std = @import("std");
 
 pub const Grid2 = struct {
-    array: std.ArrayList([]const u8),
+    items: std.ArrayList([]const u8),
 
     const Self = @This();
 
     pub fn init(allocator: std.mem.Allocator, str: []const u8) !Grid2 {
-        var array = std.ArrayList([]const u8).init(allocator);
+        var items = std.ArrayList([]const u8).init(allocator);
         var lit = std.mem.splitScalar(u8, str, '\n');
         while (lit.next()) |line| {
             if (line.len == 0)
                 break;
-            try array.append(line);
+            const trimmed = std.mem.trim(u8, line, " \r\n");
+            try items.append(trimmed);
         }
-        return .{ .array = array };
+        return .{ .items = items };
     }
 
     pub fn deinit(self: Self) void {
-        self.array.deinit();
+        self.items.deinit();
     }
 
     pub const NumIterator = struct {
@@ -32,12 +33,12 @@ pub const Grid2 = struct {
         }
 
         pub fn nextWI(self: *NumIterator, comptime T: type) !?struct { num: T, x: usize, y0: usize, yn: usize } {
-            if (self.row >= self.grid.array.items.len)
+            if (self.row >= self.grid.items.items.len)
                 return null;
             var w = false;
             var num_i: usize = 0;
             var num_b: [50]u8 = [_]u8{0} ** 50;
-            for (self.grid.array.items[self.row][self.col..], 0..) |ch, o| {
+            for (self.grid.items.items[self.row][self.col..], 0..) |ch, o| {
                 const id = std.ascii.isDigit(ch);
                 if (w and !id) {
                     self.col += o;
@@ -52,7 +53,7 @@ pub const Grid2 = struct {
             }
             self.col = 0;
             if (w) {
-                const len = self.grid.array.items[self.row].len;
+                const len = self.grid.items.items[self.row].len;
                 const ret = .{ .num = try std.fmt.parseInt(T, num_b[0..num_i], 10), .x = self.row, .y0 = len - num_i, .yn = len };
                 self.row += 1;
                 return ret;
@@ -79,12 +80,12 @@ pub const Grid2 = struct {
     pub fn adjacentPos(self: *const Self, x: usize, y: usize, char: u8) ?[2]usize {
         for (offsets) |o| {
             const dx = @as(isize, @intCast(x)) + o[0];
-            if (dx < 0 or dx >= self.array.items.len)
+            if (dx < 0 or dx >= self.items.items.len)
                 continue;
             const dy = @as(isize, @intCast(y)) + o[1];
-            if (dy < 0 or dy >= self.array.items[0].len)
+            if (dy < 0 or dy >= self.items.items[0].len)
                 continue;
-            if (self.array.items[@intCast(dx)][@intCast(dy)] == char)
+            if (self.items.items[@intCast(dx)][@intCast(dy)] == char)
                 return .{ @intCast(dx), @intCast(dy) };
         }
         return null;
@@ -93,12 +94,12 @@ pub const Grid2 = struct {
     pub fn isAdjacentFn(self: *const Self, x: usize, y: usize, comptime f: fn (u8) bool) bool {
         for (offsets) |o| {
             const dx = @as(isize, @intCast(x)) + o[0];
-            if (dx < 0 or dx >= self.array.items.len)
+            if (dx < 0 or dx >= self.items.items.len)
                 continue;
             const dy = @as(isize, @intCast(y)) + o[1];
-            if (dy < 0 or dy >= self.array.items[0].len)
+            if (dy < 0 or dy >= self.items.items[0].len)
                 continue;
-            if (f(self.array.items[@intCast(dx)][@intCast(dy)]))
+            if (f(self.items.items[@intCast(dx)][@intCast(dy)]))
                 return true;
         }
         return false;
