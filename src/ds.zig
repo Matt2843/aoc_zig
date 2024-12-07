@@ -1,5 +1,90 @@
 const std = @import("std");
 
+pub fn CartesianProduct(comptime T: type, comptime MaxLen: usize) type {
+    return struct {
+        const Self = @This();
+
+        items: []const T,
+        indices: [MaxLen]usize = undefined,
+        result: [MaxLen]T = undefined,
+        current_len: usize,
+        done: bool,
+
+        pub fn next(self: *Self) ?[]const T {
+            if (self.done) return null;
+
+            for (self.result[0..self.current_len], 0..) |*result_item, i| {
+                result_item.* = self.items[self.indices[i]];
+            }
+
+            var carry = true;
+            for (0..self.current_len) |i| {
+                if (carry) {
+                    self.indices[i] += 1;
+                    if (self.indices[i] < self.items.len) {
+                        carry = false;
+                    } else {
+                        self.indices[i] = 0;
+                    }
+                }
+            }
+
+            if (carry) self.done = true;
+
+            return self.result[0..self.current_len];
+        }
+    };
+}
+
+pub fn product(comptime T: type, items: []const T, repeat: usize) CartesianProduct(T, 100) {
+    return .{ .items = items, .indices = [_]usize{0} ** 100, .result = undefined, .current_len = repeat, .done = items.len == 0 or repeat > 100 };
+}
+
+pub fn PermutationIterator(comptime T: type) type {
+    return struct {
+        buffer: []T,
+        size: u4,
+        state: [16]u4,
+        stateIndex: u4,
+        first: bool,
+
+        const Self = @This();
+
+        pub fn next(self: *Self) ?[]T {
+            if (self.first) {
+                self.first = false;
+                return self.buffer;
+            }
+            while (self.stateIndex < self.size) {
+                if (self.state[self.stateIndex] < self.stateIndex) {
+                    if (self.stateIndex % 2 == 0) {
+                        std.mem.swap(T, &self.buffer[0], &self.buffer[self.stateIndex]);
+                    } else {
+                        std.mem.swap(T, &self.buffer[self.state[self.stateIndex]], &self.buffer[self.stateIndex]);
+                    }
+                    self.state[self.stateIndex] += 1;
+                    self.stateIndex = 0;
+                    return self.buffer;
+                } else {
+                    self.state[self.stateIndex] = 0;
+                    self.stateIndex += 1;
+                }
+            }
+            return null;
+        }
+    };
+}
+
+pub fn permutations(comptime T: type, buffer: []T) PermutationIterator(T) {
+    return .{
+        .buffer = buffer[0..],
+        .size = @intCast(buffer.len),
+        .state = [_]u4{0} ** 16,
+        .stateIndex = 0,
+        .first = true,
+    };
+}
+
 pub const Grid2 = struct {
     items: std.ArrayList([]const u8),
 
